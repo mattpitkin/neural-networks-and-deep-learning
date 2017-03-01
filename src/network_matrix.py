@@ -106,9 +106,10 @@ class Network(object):
         # backward pass
         delta = self.cost_derivative(activations[-1], y) * \
             sigmoid_prime(zs[-1])
+
         nabla_b[-1] = delta.sum(0)
-        #nabla_w[-1] = np.dot(delta, activations[-2].transpose())
-        nabla_w[-1] = np.array([np.dot(d, a[-2].transpose()) for d, a in zip(delta, activations)]).sum(1)
+        nabla_w[-1] = np.einsum('ijk,ikj->jk', delta, activations[-2])
+
         # Note that the variable l in the loop below is used a little
         # differently to the notation in Chapter 2 of the book.  Here,
         # l = 1 means the last layer of neurons, l = 2 is the
@@ -118,10 +119,9 @@ class Network(object):
         for l in xrange(2, self.num_layers):
             z = zs[-l]
             sp = sigmoid_prime(z)
-            delta = np.matmul(self.weights[-l+1].transpose(), delta) * sp
+            delta = np.einsum('kj,ikl->ijl', self.weights[-l+1], delta) * sp
             nabla_b[-l] = delta.sum(0)
-            #nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
-            nabla_w[-l] = np.array([np.dot(d, a[-l-1].transpose()) for d, a in zip(delta, activations)]).sum(1)
+            nabla_w[-l] = np.einsum('ijk,ikj->jk', delta, activations[-l-1])
         return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
